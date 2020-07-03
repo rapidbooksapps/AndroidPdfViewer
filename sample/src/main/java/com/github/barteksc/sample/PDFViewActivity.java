@@ -19,14 +19,28 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.barteksc.pdfviewer.PDFView;
@@ -34,8 +48,10 @@ import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener;
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener;
 import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle;
+import com.github.barteksc.pdfviewer.util.FileUtils;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.shockwave.pdfium.PdfDocument;
+import com.shockwave.pdfium.PdfiumCore;
 
 import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.EActivity;
@@ -45,6 +61,9 @@ import org.androidannotations.annotations.OptionsItem;
 import org.androidannotations.annotations.OptionsMenu;
 import org.androidannotations.annotations.ViewById;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
 @EActivity(R.layout.activity_main)
@@ -70,6 +89,23 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
     Integer pageNumber = 0;
 
     String pdfFileName;
+
+    @ViewById
+    EditText jumpToEdit;
+
+    @ViewById
+    Button showContentBtn;
+
+    @ViewById
+    ListView contentListView;
+
+    @ViewById
+    Button showThumbnailBtn;
+
+    ParcelFileDescriptor fd;
+
+    @ViewById
+    ImageView thumbnailImageView;
 
     @OptionsItem(R.id.pickFile)
     void pickFile() {
@@ -109,11 +145,94 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
             displayFromAsset(SAMPLE_FILE);
         }
         setTitle(pdfFileName);
+
+        //实现跳页
+        jumpToEdit.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                    try {
+                        int pageNumber = Integer.parseInt(jumpToEdit.getText().toString());
+                        pdfView.jumpTo(pageNumber, true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                return false;
+             }
+        });
+
+        //显示目录
+        showContentBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (contentListView.getVisibility() == View.INVISIBLE) {
+                    contentListView.setVisibility(View.VISIBLE);
+                } else {
+                    contentListView.setVisibility(View.INVISIBLE);
+                }
+            }
+        });
+
+        //显示缩略图
+        showThumbnailBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (thumbnailImageView.getVisibility() == View.INVISIBLE) {
+                    thumbnailImageView.setVisibility(View.VISIBLE);
+                    openPdf();
+                } else {
+                    thumbnailImageView.setVisibility(View.INVISIBLE);
+                }
+            }
+        });
+    }
+
+    //打开pdf，生成缩略图，当前页的
+    void openPdf() {
+        if (fd == null) return;
+        ImageView iv = thumbnailImageView;
+        int pageNum = pdfView.getCurrentPage();
+        PdfiumCore pdfiumCore = new PdfiumCore(this);
+
+        try {
+            //todo: 复制是必须的，因为函数结尾pdfiumCore.closeDocument()后，再次打开相同的fd就会抛出异常
+            ParcelFileDescriptor pfd = fd.dup();
+            PdfDocument pdfDocument = pdfiumCore.newDocument(pfd);
+
+            pdfiumCore.openPage(pdfDocument, pageNum);
+
+            int width = pdfiumCore.getPageWidthPoint(pdfDocument, pageNum);
+            int height = pdfiumCore.getPageHeightPoint(pdfDocument, pageNum);
+
+            // ARGB_8888 - best quality, high memory usage, higher possibility of OutOfMemoryError
+            // RGB_565 - little worse quality, twice less memory usage
+            Bitmap bitmap = Bitmap.createBitmap(width, height,
+                    Bitmap.Config.RGB_565);
+            pdfiumCore.renderPageBitmap(pdfDocument, bitmap, pageNum, 0, 0,
+                    width, height);
+            //if you need to render annotations and form fields, you can use
+            //the same method above adding 'true' as last param
+
+            iv.setImageBitmap(bitmap);
+
+//            printInfo(pdfiumCore, pdfDocument);
+
+            pdfiumCore.closeDocument(pdfDocument); // important!
+        } catch(IOException ex) {
+            ex.printStackTrace();
+        }
     }
 
     private void displayFromAsset(String assetFileName) {
         pdfFileName = assetFileName;
-
+        File f = null;
+        try {
+            f = FileUtils.fileFromAsset(this, SAMPLE_FILE);
+            fd = ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         pdfView.fromAsset(SAMPLE_FILE)
                 .defaultPage(pageNumber)
                 .onPageChange(this)
@@ -128,7 +247,11 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
 
     private void displayFromUri(Uri uri) {
         pdfFileName = getFileName(uri);
-
+        try {
+            fd =  getContentResolver().openFileDescriptor(uri, "r");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         pdfView.fromUri(uri)
                 .defaultPage(pageNumber)
                 .onPageChange(this)
@@ -187,6 +310,58 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         Log.e(TAG, "modDate = " + meta.getModDate());
 
         printBookmarksTree(pdfView.getTableOfContents(), "-");
+
+        //加载目录，只加载一级目录
+        contentListView.setAdapter(new BaseAdapter() {
+
+            @Override
+            public int getCount() {
+                return pdfView.getTableOfContents().size();
+            }
+
+            @Override
+            public Object getItem(int position) {
+                return pdfView.getTableOfContents().get(position);
+            }
+
+            @Override
+            public long getItemId(int position) {
+                return 0;
+            }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                ViewHolder viewHolder = null;
+                if (convertView == null) {
+                    convertView = View.inflate(parent.getContext(), R.layout.table_of_content_item, null);
+                    viewHolder = new ViewHolder();
+                    viewHolder.contentListView = convertView.findViewById(R.id.contentTitleView);
+                    viewHolder.pageNumberView = convertView.findViewById(R.id.pageNumberView);
+                    convertView.setTag(viewHolder);
+                } else {
+                    viewHolder = (ViewHolder) convertView.getTag();
+                }
+                PdfDocument.Bookmark bookmark = (PdfDocument.Bookmark) getItem(position);
+
+                viewHolder.contentListView.setText(bookmark.getTitle());
+                viewHolder.pageNumberView.setText(String.valueOf(bookmark.getPageIdx()));
+                return convertView;
+            }
+
+            class ViewHolder {
+                TextView contentListView;
+                TextView pageNumberView;
+            }
+        });
+        //点击目录项，跳页，无动画
+        contentListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                PdfDocument.Bookmark bookmark = pdfView.getTableOfContents().get(position);
+                pdfView.jumpTo((int)bookmark.getPageIdx());
+                contentListView.setVisibility(View.INVISIBLE);
+            }
+        });
 
     }
 

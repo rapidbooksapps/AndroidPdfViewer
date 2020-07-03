@@ -8,4 +8,53 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+	<Button
+		android:layout_width="60dp"
+		android:layout_height="40dp"
+		android:textSize="12dp"
+		android:text="目录"
+		android:layout_marginTop="8dp"
+		android:layout_marginStart="8dp"
+		android:id="@+id/showContentBtn" />
+
+    <EditText
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@+id/showContentBtn"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="8dp"
+        android:hint="页码+回车"
+        android:inputType="number"
+        android:textSize="12dp"
+        android:id="@+id/jumpToEdit"
+        />
+    <Button
+        android:layout_width="60dp"
+        android:layout_height="40dp"
+        android:textSize="12dp"
+        android:text="缩略图"
+        android:layout_toEndOf="@+id/jumpToEdit"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:id="@+id/showThumbnailBtn" />
+
+	<ListView
+		android:layout_width="300dp"
+		android:layout_height="500dp"
+		android:visibility="invisible"
+		tools:visibility="visible"
+		android:id="@+id/contentListView"
+		android:layout_below="@id/showContentBtn"
+		android:background="@android:color/darker_gray"/>
+    <ImageView
+        android:layout_width="300dp"
+        android:layout_height="500dp"
+        android:id="@+id/thumbnailImageView"
+        android:visibility="invisible"
+        android:layout_below="@id/showContentBtn"
+        android:background="@android:color/darker_gray"/>
+
+
+
 </RelativeLayout>
