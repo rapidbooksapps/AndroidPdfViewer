@@ -1,2 +1,2 @@
-include ':android-pdf-viewer'
+include ':android-pdf-viewer', ':github_barteksc_pdfiumandroid'
 include ':sample'
