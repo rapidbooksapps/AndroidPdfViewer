@@ -203,7 +203,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
 
                 if (fd == null) return;
 
-                pdfView.searchInPage("o");
+                pdfView.searchInPage(textToSearchPage.getText().toString());
             }
         });
     }

@@ -145,6 +145,9 @@ public class PDFView extends RelativeLayout {
     /** The zoom level, always >= 1 */
     private float zoom = 1f;
 
+    protected ArrayList<RectF> highlights ;
+
+
     /** True if the PDFView has been recycled */
     private boolean recycled = true;
 
@@ -628,18 +631,21 @@ public class PDFView extends RelativeLayout {
         // Draws parts
         for (PagePart part : cacheManager.getPageParts()) {
             drawPart(canvas, part);
-            if (callbacks.getOnDrawAll() != null
+            if ( (highlights.size() > 0 || callbacks.getOnDrawAll() != null)
                     && !onDrawPagesNums.contains(part.getPage())) {
                 onDrawPagesNums.add(part.getPage());
             }
         }
 
         for (Integer page : onDrawPagesNums) {
-            drawWithListener(canvas, page, callbacks.getOnDrawAll());
+            if (callbacks.getOnDraw() != null){
+                drawWithListener(canvas, page, callbacks.getOnDrawAll());
+            }
+            drawHighlights(canvas, page);
         }
         onDrawPagesNums.clear();
 
-        drawWithListener(canvas, currentPage, callbacks.getOnDraw());
+            drawWithListener(canvas, currentPage, callbacks.getOnDraw());
 
         // Restores the canvas position
         canvas.translate(-currentXOffset, -currentYOffset);
@@ -726,6 +732,48 @@ public class PDFView extends RelativeLayout {
 
         // Restore the canvas position
         canvas.translate(-localTranslationX, -localTranslationY);
+
+    }
+
+    private void drawHighlights(Canvas canvas, int displayedPage){
+        float translateX, translateY;
+        if (swipeVertical) {
+            translateX = 0;
+            translateY = pdfFile.getPageOffset(displayedPage, zoom);
+        } else {
+            translateY = 0;
+            translateX = pdfFile.getPageOffset(displayedPage, zoom);
+        }
+
+        canvas.translate(translateX, translateY);
+            //SizeF size = pdfFile.getPageSize(displayedPage);
+
+            Paint pt = new Paint();
+            pt.setColor(Color.GREEN);
+            pt.setAlpha(100);
+            pt.setStyle(Paint.Style.FILL);
+            for(RectF r: highlights){
+
+                SizeF size = pdfFile.getPageSize(displayedPage);
+    //                    SizeF size = pdfFile.getScaledPageSize(2, getZoom());
+
+                RectF n;
+                try {
+                    n = pdfFile.mapRectToDevice(displayedPage,
+                            0, 0, Math.round(size.getWidth()), Math.round(size.getHeight()), r);
+                }catch (Exception e){
+                    continue;
+                }
+
+                RectF destRect = new RectF();
+                destRect.left = toCurrentScale(n.left);
+                destRect.top = toCurrentScale(n.top);
+                destRect.right = toCurrentScale(n.right);
+                destRect.bottom = toCurrentScale(n.bottom);
+                //不需要考虑滑动偏移量，调进来的时候已经 translate 了
+                canvas.drawRect(destRect, pt);
+            }
+        canvas.translate(-translateX, -translateY);
 
     }
 

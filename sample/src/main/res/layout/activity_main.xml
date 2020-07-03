@@ -56,12 +56,13 @@
 
 		<EditText
 			android:id="@+id/textToSearchPage"
-			android:layout_width="80dp"
+			android:layout_width="130dp"
 			android:layout_height="wrap_content"
 			android:layout_alignParentTop="true"
 			android:layout_marginTop="8dp"
-			android:hint="搜索+回车 搜本页"
-			android:inputType="number"
+			android:hint="关键字"
+			android:background="@android:color/background_light"
+			android:inputType="text"
 			android:textSize="12dp"/>
 
 		<Button

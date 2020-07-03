@@ -376,16 +376,26 @@ class PdfFile {
 
     public ArrayList<RectF> testOne(String text, int userPage){
         FPDFTextSearchContext searchContext = (FPDFTextSearchContext) pdfiumCore.newPageSearch(pdfDocument, userPage, text, false, false);
-
-        if (!searchContext.hasNext()) {
-            return new ArrayList<RectF>();
-        }
-
-        int idx = searchContext.getFirstCharIndex();
-        Integer cnt = pdfiumCore.countTextRect(pdfDocument, userPage, idx, text.length());
         ArrayList<RectF> rects = new ArrayList<>();
-        for (int i = 0;i < cnt;i ++ ){
-            rects.add(i, pdfiumCore.getTextRect(pdfDocument, userPage, i));
+        Integer loop = 0;
+        while (searchContext.hasNext() && (++loop < 1000)) {
+            searchContext.searchNext();
+            if (searchContext.getCurrentPos() == -1){
+                break;
+            }
+            //int idx = searchContext.getFirstCharIndex();
+            Integer cntBefore = pdfiumCore.countTextRect(pdfDocument, userPage, 0, searchContext.getCurrentPos());
+            //if (cntBefore < 0 ){
+                //不应该执行到这里
+            //    return new ArrayList<RectF>();
+            //}
+            //搜索 [A B] 会搜出来 [A \n\rB] 长度不一样
+//        Integer cnt = pdfiumCore.countTextRect(pdfDocument, userPage, searchContext.getCurrentPos(), text.length());
+            Integer cnt = pdfiumCore.countTextRect(pdfDocument, userPage, searchContext.getCurrentPos(), searchContext.countResult());
+            for (int i = 0;i < cnt;i ++ ){
+                RectF r = pdfiumCore.getTextRect(pdfDocument, userPage,  i);
+                rects.add(i, r);
+            }
         }
 
         return rects;
