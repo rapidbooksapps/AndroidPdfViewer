@@ -43,6 +43,7 @@ import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.barteksc.pdfviewer.PDFSearchView;
 import com.github.barteksc.pdfviewer.PDFView;
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener;
@@ -76,11 +77,11 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
     private final static int REQUEST_CODE = 42;
     public static final int PERMISSION_CODE = 42042;
 
-    public static final String SAMPLE_FILE = "sample.pdf";
+    public static final String SAMPLE_FILE = "FoxitPDF_SDK20_Guide.pdf";
     public static final String READ_EXTERNAL_STORAGE = "android.permission.READ_EXTERNAL_STORAGE";
 
     @ViewById
-    PDFView pdfView;
+    PDFSearchView pdfView;
 
     @NonConfigurationInstance
     Uri uri;
@@ -95,6 +96,12 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
 
     @ViewById
     Button showContentBtn;
+
+    @ViewById
+    EditText textToSearchPage;
+
+    @ViewById
+    Button searchDocumentBtn;
 
     @ViewById
     ListView contentListView;
@@ -166,10 +173,10 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         showContentBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (contentListView.getVisibility() == View.INVISIBLE) {
+                if (contentListView.getVisibility() == View.GONE) {
                     contentListView.setVisibility(View.VISIBLE);
                 } else {
-                    contentListView.setVisibility(View.INVISIBLE);
+                    contentListView.setVisibility(View.GONE);
                 }
             }
         });
@@ -178,12 +185,25 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         showThumbnailBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (thumbnailImageView.getVisibility() == View.INVISIBLE) {
+                if (thumbnailImageView.getVisibility() == View.GONE) {
                     thumbnailImageView.setVisibility(View.VISIBLE);
                     openPdf();
                 } else {
-                    thumbnailImageView.setVisibility(View.INVISIBLE);
+                    thumbnailImageView.setVisibility(View.GONE);
                 }
+            }
+        });
+
+        //搜索文字
+        searchDocumentBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                thumbnailImageView.setVisibility(View.GONE);
+                contentListView.setVisibility(View.GONE);
+
+                if (fd == null) return;
+
+                pdfView.searchInPage("o");
             }
         });
     }
@@ -359,7 +379,7 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 PdfDocument.Bookmark bookmark = pdfView.getTableOfContents().get(position);
                 pdfView.jumpTo((int)bookmark.getPageIdx());
-                contentListView.setVisibility(View.INVISIBLE);
+                contentListView.setVisibility(View.GONE);
             }
         });
 

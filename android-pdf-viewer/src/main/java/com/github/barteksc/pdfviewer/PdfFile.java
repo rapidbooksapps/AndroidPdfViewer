@@ -15,6 +15,7 @@
  */
 package com.github.barteksc.pdfviewer;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -25,6 +26,8 @@ import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.github.barteksc.pdfviewer.util.PageSizeCalculator;
 import com.shockwave.pdfium.PdfDocument;
 import com.shockwave.pdfium.PdfiumCore;
+import com.shockwave.pdfium.search.FPDFTextSearchContext;
+import com.shockwave.pdfium.search.TextSearchContext;
 import com.shockwave.pdfium.util.Size;
 import com.shockwave.pdfium.util.SizeF;
 
@@ -369,5 +372,35 @@ class PdfFile {
         }
 
         return documentPage;
+    }
+
+    public ArrayList<RectF> testOne(String text, int userPage){
+        FPDFTextSearchContext searchContext = (FPDFTextSearchContext) pdfiumCore.newPageSearch(pdfDocument, userPage, text, false, false);
+
+        if (!searchContext.hasNext()) {
+            return new ArrayList<RectF>();
+        }
+
+        int idx = searchContext.getFirstCharIndex();
+        Integer cnt = pdfiumCore.countTextRect(pdfDocument, userPage, idx, text.length());
+        ArrayList<RectF> rects = new ArrayList<>();
+        for (int i = 0;i < cnt;i ++ ){
+            rects.add(i, pdfiumCore.getTextRect(pdfDocument, userPage, i));
+        }
+
+        return rects;
+    }
+
+    public void searchInPage(String text, int userPage){
+        //http://www.4xpdf.com/2010/03/technical-background-to-pdf-font-options/
+        TextSearchContext searchContext = pdfiumCore.newPageSearch(pdfDocument, 2, text, false, false);
+        Integer chars = pdfiumCore.countCharactersOnPage(pdfDocument, 2);
+        String textInPage = pdfiumCore.extractCharacters(pdfDocument, 2, 0, 500);
+        ArrayList<RectF> a = testOne("Programming Guide", 1);
+        ArrayList<RectF> b = testOne("Copyright", 1);
+        ArrayList<RectF> c = testOne("prior written permission", 1);
+        ArrayList<RectF> d = testOne("copyright notice appears in all copies. This software is provided \"as is\" without express or im-plied warranty, and with no claim as to its suitability for any", 1);
+        RectF range = searchContext.searchNext();
+        Integer cnt = searchContext.countResult();
     }
 }
