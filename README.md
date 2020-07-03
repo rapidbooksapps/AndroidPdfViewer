@@ -1,3 +1,8 @@
+/Users/admin/Library/Android/sdk/ndk-bundle/ndk-build
+
+需要打开 x86 支持
+pdfiumapi/src/main/jni/Application.mk 修改 APP_ABI
+pdfiumapi/build.gradle 修改 packagingOptions
 
 # Looking for new maintainer!
 
