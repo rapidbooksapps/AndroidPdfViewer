@@ -1,0 +1,3 @@
+[submodule "pdfiumapi"]
+	path = pdfiumapi
+	url = git@github.com:rapidbooksapps/PdfiumAndroid.git
