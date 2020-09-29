@@ -524,13 +524,13 @@ public class PDFView extends RelativeLayout {
         if (swipeVertical) {
             if (direction < 0 && currentXOffset < 0) {
                 return true;
-            } else if (direction > 0 && currentXOffset + toCurrentScale(pdfFile.getMaxPageWidth()) > getWidth()) {
+            } else if (direction > 0 && currentXOffset + toCurrentScale(pdfFile.getMaxPageWidth()) - getWidth() > 1) {
                 return true;
             }
         } else {
             if (direction < 0 && currentXOffset < 0) {
                 return true;
-            } else if (direction > 0 && currentXOffset + pdfFile.getDocLen(zoom) > getWidth()) {
+            } else if (direction > 0 && currentXOffset + pdfFile.getDocLen(zoom) - getWidth() > 1) {
                 return true;
             }
         }
